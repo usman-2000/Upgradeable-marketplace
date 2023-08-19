@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 
-import "@openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin-contracts/contracts/utils/Counters.sol";
-import "@openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin-contracts/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 struct NFTListing {
     uint256 price;
     address seller;
 }
 
-contract NFTMarket is ERC721URIStorage, Ownable {
-    using Counters for Counters.Counter;
-    using SafeMath for uint256;
+contract NFTMarketUpgradeable is Initializable, ERC721URIStorageUpgradeable,OwnableUpgradeable {
+    using CountersUpgradeable for CountersUpgradeable.Counter;
+    using SafeMathUpgradeable for uint256;
 
-    Counters.Counter public _tokenIDs;
+    CountersUpgradeable.Counter public _tokenIDs;
     mapping(uint256 => NFTListing) private _listings;
 
     // if tokenURI is not an empty string => an NFT was created
@@ -23,7 +25,13 @@ contract NFTMarket is ERC721URIStorage, Ownable {
     // if price is 0 && tokenURI is an empty string => NFT was transferred (either bought, or the listing was canceled)
     event NFTTransfer(uint256 tokenID, address from, address to, string tokenURI, uint256 price);
 
-    constructor() ERC721("Abdou's NFTs", "ANFT") {}
+    // constructor() ERC721("Abdou's NFTs", "ANFT") {}
+
+    function initialize() external initializer{
+        __ERC721_init("URKS TOKEN","URK");
+        __Ownable_init();
+    }
+
 
     function createNFT(string calldata tokenURI) public {
         _tokenIDs.increment();
@@ -44,7 +52,7 @@ contract NFTMarket is ERC721URIStorage, Ownable {
         NFTListing memory listing = _listings[tokenID];
         require(listing.price > 0, "NFTMarket: nft not listed for sale");
         require(msg.value == listing.price, "NFTMarket: incorrect price");
-        ERC721(address(this)).transferFrom(address(this), msg.sender, tokenID);
+        ERC721Upgradeable(address(this)).transferFrom(address(this), msg.sender, tokenID);
         clearListing(tokenID);
 
         // transfer funds k function per error hai.......
@@ -59,7 +67,7 @@ contract NFTMarket is ERC721URIStorage, Ownable {
         NFTListing memory listing = _listings[tokenID];
         require(listing.price > 0, "NFTMarket: nft not listed for sale");
         require(listing.seller == msg.sender, "NFTMarket: you're not the seller");
-        ERC721(address(this)).transferFrom(address(this), msg.sender, tokenID);
+        ERC721Upgradeable(address(this)).transferFrom(address(this), msg.sender, tokenID);
         clearListing(tokenID);
         emit NFTTransfer(tokenID, address(this), msg.sender, "", 0);
     }
